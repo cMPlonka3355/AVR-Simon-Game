@@ -1,0 +1,105 @@
+; Pseudocode for Project, basic outline
+
+.equ DELAY_S = 64                       ; sleep 1 second
+
+.org 0x0000
+          jmp       main
+          
+; ------------------------------------------------------------
+main:
+; main application method
+;         one-time setup & configuration
+; ------------------------------------------------------------
+
+; set ups for output and input
+
+	sbi	DDRB, DDB0	;setup 4 pins for output to light
+	sbi	DDRB, DDB1
+	sbi	DDRB, DDB2
+	sbi	DDRB, DDB3
+	
+	cbi     PORTB, PB0
+	cbi     PORTB, PB1
+	cbi     PORTB, PB2
+	cbi     PORTB, PB3
+	
+	
+	cbi	DDRD, DDD0	;setup different 4 pins for input to machine, to match light
+	cbi	DDRD, DDD1
+	cbi	DDRD, DDD2
+	cbi	DDRD, DDD3
+	
+	;setup connection with 4 digit display, to keep track of score
+	
+	ldi	r31, 0		;set variable for length of pattern to zero
+	
+	ldi	r30, 0		;set up variable for keeping track of score
+	
+main_loop:
+
+	;get random value that corresponds to four options for pattern input and output
+	
+	;set specific memory address as one to start pattern from
+	
+	;assign value into memory, making sure it's to next place in memory for pattern
+	;	-something along lines of certain memory register + (pattern length - 1)
+	
+	;increment length variable
+	
+	;set variable for keep track of loop as zero
+	
+	;display value of score
+
+
+display_pattern: 
+	;do: fetch value from memory using first memory + (pattern length - 1)
+	;display value by turning on corresponding light
+	;delay
+	;turn light off
+	;increment variable to track loop
+	;while (loop tracker < pattern length), jump to display_pattern
+	
+	;set loop variable back to zero
+
+player_repeat_pattern:
+	;do: fetch value from memory using first memory + (pattern length - 1)
+	;have player input value
+	;display light as on
+	;compare player input to value from memory
+	;if not same value, jump to lose state
+	;else continue loop
+	;increment variable tracker
+	;while (loop tracker < pattern length), jump to player_repeat_pattern
+	
+	;increment score
+
+end_main:
+	rjmp	main_loop
+
+lose_game:
+	rjmp	lose_game
+
+; ------------------------------------------------------------
+delay_ms:
+; creates a timed delay using multiple nested loops (utilized from GPIO tutorials)
+; ------------------------------------------------------------
+          ldi       r18,DELAY_S
+delay_ms_1:
+
+          ldi       r17,200
+delay_ms_2:
+
+          ldi       r16,250
+delay_ms_3:
+          nop
+          nop
+          dec       r16
+          brne      delay_ms_3          ; 250 * 5 = 1250
+
+          dec       r17
+          brne      delay_ms_2          ; 200 * 1250 = 250K
+
+          dec       r18
+          brne      delay_ms_1          ; 16 * 250K = 4M (1/4s ex)
+dealy_ms_end:
+          ret
