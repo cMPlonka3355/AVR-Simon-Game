@@ -18,7 +18,7 @@ main:
 	sbi	DDRB, DDB2
 	sbi	DDRB, DDB3
 	
-	cbi     PORTB, PB0
+	cbi     PORTB, PB0	; set 4 light pins to low voltage
 	cbi     PORTB, PB1
 	cbi     PORTB, PB2
 	cbi     PORTB, PB3
