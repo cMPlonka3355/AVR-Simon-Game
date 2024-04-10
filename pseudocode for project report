@@ -9,7 +9,6 @@
 main:
 ; main application method
 ;         one-time setup & configuration
-; ------------------------------------------------------------
 
 ; set ups for output and input
 
@@ -34,6 +33,8 @@ main:
 	ldi	r31, 0		;set variable for length of pattern to zero
 	
 	ldi	r30, 0		;set up variable for keeping track of score
+
+; ------------------------------------------------------------
 	
 main_loop:
 
