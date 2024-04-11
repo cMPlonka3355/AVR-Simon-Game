@@ -11,36 +11,71 @@ main:
 ;         one-time setup & configuration
 
 ; set ups for output and input
+                                 ; setup 4 pins for output to light
+	sbi	DDRB, DDB0	 ; LED 1
+	sbi	DDRB, DDB1       ; LED 2
+	sbi	DDRB, DDB2       ; LED 3
+	sbi	DDRB, DDB3       ; LED 4
 
-	sbi	DDRB, DDB0	;setup 4 pins for output to light
-	sbi	DDRB, DDB1
-	sbi	DDRB, DDB2
-	sbi	DDRB, DDB3
-	
-	cbi     PORTB, PB0	; set 4 light pins to low voltage
+				; set 4 light pins to low voltage
+	cbi     PORTB, PB0	
 	cbi     PORTB, PB1
 	cbi     PORTB, PB2
 	cbi     PORTB, PB3
 	
+				; setup different 4 pins for input to the machine, to match light
+	cbi	DDRD, DDD0	; Button 1
+	cbi	DDRD, DDD1	; Button 2
+	cbi	DDRD, DDD2	; Button 3
+	cbi	DDRD, DDD3	; Button 4
 	
-	cbi	DDRD, DDD0	;setup different 4 pins for input to machine, to match light
-	cbi	DDRD, DDD1
-	cbi	DDRD, DDD2
-	cbi	DDRD, DDD3
-	
-	;setup connection with 4 digit display, to keep track of score
+;setup connection with 4 digit display, to keep track of score
 	
 	ldi	r31, 0		;set variable for length of pattern to zero
 	
 	ldi	r30, 0		;set up variable for keeping track of score
 
 generate_pattern:
-	;generates pattern to be utilized in gameplay loop
+;generates pattern to be utilized in gameplay loop
 
 ; ------------------------------------------------------------
 	
 main_gameplay_loop:
-
+                               
+four_button_press:                      
+;the purpose of four_button_press is to take button input, turn led on, turn led off                                   
+          in        r16,PORTD           ; copy the entire D port into r16     
+          cpi       PD0,1               ; use CPI to check if Port D Pin 0 (button1) is set (pressed)
+          breq      button_one_pressed  ; if pressed branch
+          cpi       PD1,1               ; use CPI to check if Port D Pin 1 (button2) is set (pressed) 
+          breq      button_two_pressed
+          cpi       PD2,1               ; use CPI to check if Port D Pin 2 (button3) is set (pressed)
+          breq      button_three_pressed
+          cpi       PD3,1               ; use CPI to check if Port D Pin 3 (button4) is set (pressed)
+          breq      button_four_pressed
+          rjmp      four_button_press
+button_one_pressed:
+          sbi       PORTB,PB0           ; turn LED 1 on
+          call      delay_ms            ; sleep(n)
+          cbi       PORTB,PB0           ; turn LED 1 off
+          rjmp      end_fbpress
+button_two_pressed:
+          sbi       PORTB,PB1           ; turn LED 2 on
+          call      delay_ms            ; sleep(n)
+          cbi       PORTB,PB1           ; turn LED 2 off
+          rjmp      end_fbpress
+button_three_pressed:
+          sbi       PORTB,PB2           ; turn LED 3 on
+          call      delay_ms            ; sleep(n)
+          cbi       PORTB,PB2           ; turn LED 3 off
+          rjmp      end_fbpress
+button_4_pressed:
+          sbi       PORTB,PB3           ; turn LED 4 on
+          call      delay_ms            ; sleep(n)
+          cbi       PORTB,PB3           ; turn LED 4 off
+          rjmp      end_fbpress
+end_fbpress:
+                            
 	;get random value that corresponds to four options for pattern input and output
 	
 	;set specific memory address as one to start pattern from
