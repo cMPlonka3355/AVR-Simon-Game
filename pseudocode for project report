@@ -31,12 +31,32 @@ main:
 	
 ;setup connection with 4 digit display, to keep track of score
 	
-	ldi	r31, 0		;set variable for length of pattern to zero
+	ldi	r31, 50		;set variable for length of pattern to 50 default
 	
 	ldi	r30, 0		;set up variable for keeping track of score
+	
+	ldi	r29, 0x0061	;set up starting address in extended I/O to save pattern in
 
 generate_pattern:
 ;generates pattern to be utilized in gameplay loop
+	mov	r1, r29		;copy address to other gpr, in order to increment in loop
+
+				;random generation of value between 1 and 4, assigned to gpr address
+	cpi	r17, 0			;switch statement determining which signal to save into pattern list
+	breq	save_PD0_on_into_pattern
+	
+	cpi	r17, 1			;switch statement determining which signal to save into pattern list
+	breq	save_PD1_on_into_pattern
+	
+	cpi	r17, 2			;switch statement determining which signal to save into pattern list
+	breq	save_PD2_on_into_pattern
+	
+	cpi	r17, 3			;switch statement determining which signal to save into pattern list
+	breq	save_PD3_on_into_pattern
+	
+continue_pattern_generation:
+	inc	r1		;increment to next address in I/O
+				;loop for total of 50 times
 
 ; ------------------------------------------------------------
 	
