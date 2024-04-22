@@ -4,11 +4,13 @@
 
 .equ patternAddress = 0x0100		; starting address for pattern
 .equ patternLength = 50			; default pattern length
+ 
 
 .def scoreKeep = r21
 .def patternLengthForRound = r22
 .def buttonInputValue = r25
 .def allowInput = r26
+.def ledCount = r27
 
 .org 0x0000
           jmp       main
@@ -126,7 +128,8 @@ continue_pattern_generation:
 main_gameplay_loop:
                                           
 	;display value of score
-	mov	 r23, patternLengthForRound	;setup register for looping display pattern
+	
+	ldi	 r23, 0				;setup register for looping display_pattern 
 	ldi	zh, HIGH(patternAddress)	;copy address to z pointer, in order to increment in loop
 	ldi	zl, LOW(patternAddress)
 
@@ -163,7 +166,7 @@ turn_PB2_on:
 turn_PB3_on:
 	  sbi	    PORTB, PB3
 	  ldi	    ledCount, 1
-	  
+					
 continue_display_pattern:	  	  
 	  	
 	  in      r16,PORTB
@@ -171,7 +174,7 @@ continue_display_pattern:
 	  brne	  continue_display_pattern
 	  		
 	  inc	  r23			;increment variable to track loop
-	  cpse	  r23, patternForLengthRound		;while (loop tracker < pattern length), jump to display_pattern
+	  cpse	  r23, patternLengthForRound		;while ( loop tracker <  pattern length), jump to display_pattern
 	  rjmp	  display_pattern
 	
 	  ldi	  r23, 0		;set loop variable back to zero
@@ -183,17 +186,17 @@ player_repeat_pattern:
 	  				
 	  ldi	  allowInput, 1		;set so player is allowed to input values
 wait_for_input:
-	  
+	  				;while (allowInput) wait_for_input
 	  cpi	  allowInput, 0
-	  brne    wait_for_input
-	  
+	  brne    wait_for_input	
+	  				
 compare_values:
 	  cp	  buttonInputValue, r16	;compare player input to value from memory
 	  brne    lose_game		;if not same value, jump to lose state
 					;else continue loop
 	  		
 	  inc	  r23			;increment variable tracker
-	  cpse	  r23, patternForLengthRound		;while (loop tracker < pattern length), jump to player_repeat_pattern
+	  cpse	  r23, patternLengthForRound		;while (loop tracker < pattern length), jump to player_repeat_pattern
 	  rjmp	  player_repeat_pattern
 	  
 	  inc	  scoreKeep 		;increment score
@@ -201,7 +204,7 @@ compare_values:
 
 end_main:
 	inc	patternLengthForRound
-	cpi	patternForLengthRound, patternLength + 1
+	cpi	patternLengthForRound, patternLength + 1
 	breq	win_game
 	rjmp	main_gameplay_loop
 
