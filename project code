@@ -1,4 +1,10 @@
-; Pseudocode for Project, basic outline
+; projectCode.asm
+; Devlopers: Denise Pierre, Connor Plonka, Dominique Lucien
+;
+; Version of Simon game, where the player has to repeat a pattern
+; of blinking colored lights, with the pattern increasing in length
+; as the player goes through the rounds.
+; ------------------------------------------------------------
 
 .equ DELAY_INTERRUPT = 65536 - (500000 / 16)     ; sleep for 1/2 second via interrupt
 
@@ -6,12 +12,14 @@
 .equ patternLength = 50			; default pattern length
  
 
-.def scoreKeep = r21
-.def patternLengthForRound = r22
-.def buttonInputValue = r25
-.def allowInput = r26
-.def ledCount = r27
+.def scoreKeep = r21			; keeps track of player's score
+.def patternLengthForRound = r22	; holds length of pattern to be output each round
+.def buttonInputValue = r25		; holds input from player
+.def allowInput = r26			; checks for whether player can input value
+.def ledCount = r27			; holds time for LEDs to be on
 
+; Vector Table
+; ------------------------------------------------------------
 .org 0x0000
           jmp       main
           
@@ -19,16 +27,16 @@
 	  jmp	    four_button_press
 
 .org OVF1addr                  		; timer overflow
-          jmp       timer1_isr
+          jmp       tm1_isr
 
 .org INT_VECTORS_SIZE                   ; end Vector Table
-
-
 ; ------------------------------------------------------------
+
+
 main:
 ; main application method
 ;         one-time setup & configuration
-
+; ------------------------------------------------------------
 ; set ups for output and input
                                  ; setup 4 pins for output to light
 	sbi	DDRB, DDB0	 ; LED 1
@@ -63,65 +71,117 @@ main:
 	
 ;setup connection with 4 digit display, to keep track of score
 	
-	ldi	r16, patternLength		;set variable with length value
+	ldi	r16, patternLength	;set variable with length value
 	mov	r3, r16
 	
 	ldi	scoreKeep, 0		;set up variable for keeping track of score
 
-	ldi	patternLengthForRound, 1
+	ldi	patternLengthForRound, 1	; sets length of pattern to be displayed for first round
 	
-	ldi	allowInput, 0
+	ldi	allowInput, 0		; makes the player unable to input values
 
 generate_pattern:
 ;generates pattern to be utilized in gameplay loop
-	ldi	zh, HIGH(patternAddress)	;copy address to z pointer, in order to increment in loop
-	ldi	zl, LOW(patternAddress)
-	
-	ldi	r19, 0		; set up counter for loop
-
-add_into_pattern:
-	
-				;random generation of value between 1 and 4, assigned to gpr address
-				
-	cpi	r20, 0			;switch statement determining which signal to save into pattern list
-	breq	save_PD0_on_into_pattern
-	
-	cpi	r20, 1			;switch statement determining which signal to save into pattern list
-	breq	save_PD1_on_into_pattern
-	
-	cpi	r20, 2			;switch statement determining which signal to save into pattern list
-	breq	save_PD2_on_into_pattern
-	
-	cpi	r20, 3			;switch statement determining which signal to save into pattern list
-	breq	save_PD3_on_into_pattern
-	
-	
-save_PD0_on_into_pattern:
+	ldi	r16, 0b0010
+	sts	0x0100, r16
 	ldi	r16, 0b0001
-	st	z+, r16			;increments to next address in I/O
-	rjmp	continue_pattern_generation
-	
-save_PD1_on_into_pattern:
-	ldi	r16, 0b0010		
-	st	z+, r16			;increments to next address in I/O
-	rjmp	continue_pattern_generation
-	
-save_PD2_on_into_pattern:
-	ldi	r16, 0b0100
-	st	z+, r16			;increments to next address in I/O
-	rjmp	continue_pattern_generation
-	
-save_PD3_on_into_pattern:
+	sts	0x0101, r16
 	ldi	r16, 0b1000
-	st	z+, r16			;increments to next address in I/O
-	
-
-continue_pattern_generation:
-	
-	inc	r19
-	cpi	r19, patternLength	;loop for total of 50 times
-	breq	main_gameplay_loop
-	rjmp	add_into_pattern
+	sts	0x0102, r16
+	ldi	r16, 0b0100
+	sts	0x0103, r16
+	ldi	r16, 0b0100
+	sts	0x0104, r16
+	ldi	r16, 0b0001
+	sts	0x0105, r16
+	ldi	r16, 0b0001
+	sts	0x0106, r16
+	ldi	r16, 0b1000
+	sts	0x0107, r16
+	ldi	r16, 0b1000
+	sts	0x0108, r16
+	ldi	r16, 0b0010
+	sts	0x0109, r16
+	ldi	r16, 0b0001
+	sts	0x010A, r16
+	ldi	r16, 0b0001
+	sts	0x010B, r16
+	ldi	r16, 0b0100
+	sts	0x010C, r16
+	ldi	r16, 0b0001
+	sts	0x010D, r16
+	ldi	r16, 0b1000
+	sts	0x010E, r16
+	ldi	r16, 0b1000
+	sts	0x010F, r16
+	ldi	r16, 0b0001
+	sts	0x0110, r16
+	ldi	r16, 0b0100
+	sts	0x0111, r16
+	ldi	r16, 0b0001
+	sts	0x0112, r16
+	ldi	r16, 0b0010
+	sts	0x0113, r16
+	ldi	r16, 0b0100
+	sts	0x0114, r16
+	ldi	r16, 0b0100
+	sts	0x0115, r16
+	ldi	r16, 0b0010
+	sts	0x0116, r16
+	ldi	r16, 0b0010
+	sts	0x0117, r16
+	ldi	r16, 0b0001
+	sts	0x0118, r16
+	ldi	r16, 0b1000
+	sts	0x0119, r16
+	ldi	r16, 0b0010
+	sts	0x011A, r16
+	ldi	r16, 0b1000
+	sts	0x011B, r16
+	ldi	r16, 0b1000
+	sts	0x011C, r16
+	ldi	r16, 0b0010
+	sts	0x011D, r16
+	ldi	r16, 0b0100
+	sts	0x011E, r16
+	ldi	r16, 0b0001
+	sts	0x011F, r16
+	ldi	r16, 0b0001
+	sts	0x0120, r16
+	ldi	r16, 0b0010
+	sts	0x0121, r16
+	ldi	r16, 0b1000
+	sts	0x0122, r16
+	ldi	r16, 0b0010
+	sts	0x0123, r16
+	ldi	r16, 0b0100
+	sts	0x0124, r16
+	ldi	r16, 0b0001
+	sts	0x0125, r16
+	ldi	r16, 0b0001
+	sts	0x0126, r16
+	ldi	r16, 0b0100
+	sts	0x0127, r16
+	ldi	r16, 0b0010
+	sts	0x0128, r16
+	ldi	r16, 0b1000
+	sts	0x0129, r16
+	ldi	r16, 0b0001
+	sts	0x012A, r16
+	ldi	r16, 0b0100
+	sts	0x012B, r16
+	ldi	r16, 0b0100
+	sts	0x012C, r16
+	ldi	r16, 0b0010
+	sts	0x012D, r16
+	ldi	r16, 0b1000
+	sts	0x012E, r16
+	ldi	r16, 0b0100
+	sts	0x012F, r16
+	ldi	r16, 0b0001
+	sts	0x0130, r16
+	ldi	r16, 0b0010
+	sts	0x0131, r16
 
 ; ------------------------------------------------------------
 	
@@ -169,26 +229,26 @@ turn_PB3_on:
 					
 continue_display_pattern:	  	  
 	  	
-	  in      r16,PORTB
-	  tst	  r16
-	  brne	  continue_display_pattern
-	  		
-	  inc	  r23			;increment variable to track loop
-	  cpse	  r23, patternLengthForRound		;while ( loop tracker <  pattern length), jump to display_pattern
-	  rjmp	  display_pattern
+	  in      r16,PORTB		; get value of PORTB, checking if any lights on
+	  tst	  r16			; while (any light on)
+	  brne	  continue_display_pattern	; continue looping to check
+	  				; else
+	  inc	  r23			; increment variable to track loop
+	  cpse	  r23, patternLengthForRound		;while ( loop tracker <  pattern length)
+	  rjmp	  display_pattern			;   jump to display_pattern
 	
 	  ldi	  r23, 0		;set loop variable back to zero
 
 player_repeat_pattern:
 	  
-	  ld	  r16, z+		;do: fetch value from memory using first memory + (pattern length - 1)
+	  ld	  r16, z+		;do: fetch value of pattern to match from memory
 	  				;also increments to next place in pattern
 	  				
 	  ldi	  allowInput, 1		;set so player is allowed to input values
 wait_for_input:
-	  				;while (allowInput) wait_for_input
-	  cpi	  allowInput, 0
-	  brne    wait_for_input	
+	  				
+	  cpi	  allowInput, 0		;while (allowInput)
+	  brne    wait_for_input	;    wait for player input
 	  				
 compare_values:
 	  cp	  buttonInputValue, r16	;compare player input to value from memory
@@ -203,10 +263,10 @@ compare_values:
 	  
 
 end_main:
-	inc	patternLengthForRound
-	cpi	patternLengthForRound, patternLength + 1
-	breq	win_game
-	rjmp	main_gameplay_loop
+	inc	patternLengthForRound	; increment pattern length to be displayed next round
+	cpi	patternLengthForRound, patternLength + 1	; if (pattern length for round greater than total pattern)
+	breq	win_game					;     player wins game
+	rjmp	main_gameplay_loop				; else repeat gameplay loop
 
 win_game:
 	rjmp	win_game
@@ -265,41 +325,41 @@ tm1_isr_ret:
 four_button_press:                      
 ;the purpose of four_button_press is to take button input, turn led on, turn led off 
 
-	  tst       ledCount
+	  tst       ledCount		; check to see if light is currently on
 	  brne	    end_fbpress
 	  
-	  tst	    allowInput
+	  tst	    allowInput		; check to see if player is allowed to input anything
 	  breq	    end_fbpress
 	  
 	  ldi	    ledCount, 1
-	  ldi	    allowCount, 0
+	  ldi	    allowInput, 0	; after returning, makes sure player is not allowed to input until next input is required
                                   
           in        r16,PORTD           ; copy the entire D port into r16     
-          cpi       PD0,1               ; use CPI to check if Port D Pin 0 (button1) is set (pressed)
+          cpi       r16,0b0001          ; use CPI to check if Port D Pin 0 (button1) is set (pressed)
           breq      button_one_pressed  ; if pressed branch
-          cpi       PD1,1               ; use CPI to check if Port D Pin 1 (button2) is set (pressed) 
+          cpi       r16,0b0010          ; use CPI to check if Port D Pin 1 (button2) is set (pressed) 
           breq      button_two_pressed
-          cpi       PD2,1               ; use CPI to check if Port D Pin 2 (button3) is set (pressed)
+          cpi       r16,0b0100          ; use CPI to check if Port D Pin 2 (button3) is set (pressed)
           breq      button_three_pressed
-          cpi       PD3,1               ; use CPI to check if Port D Pin 3 (button4) is set (pressed)
+          cpi       r16,0b1000          ; use CPI to check if Port D Pin 3 (button4) is set (pressed)
           breq      button_four_pressed
           rjmp      four_button_press
 button_one_pressed:
           sbi       PORTB,PB0           ; turn LED 1 on
-          ldi       buttonInputValue, 0b0001
+          ldi       buttonInputValue, 0b0001	; set player input value to match LED 1
           rjmp      end_fbpress
 button_two_pressed:
           sbi       PORTB,PB1           ; turn LED 2 on
-          ldi       buttonInputValue, 0b0010
+          ldi       buttonInputValue, 0b0010	; set player input value to match LED 2
           rjmp      end_fbpress
 button_three_pressed:
           sbi       PORTB,PB2           ; turn LED 3 on
-          ldi       buttonInputValue, 0b0100
+          ldi       buttonInputValue, 0b0100	; set player input value to match LED 3
           rjmp      end_fbpress
-button_4_pressed:
+button_four_pressed:
           sbi       PORTB,PB3           ; turn LED 4 on
-          ldi       buttonInputValue, 0b1000
+          ldi       buttonInputValue, 0b1000	; set player input value to match LED 4
 end_fbpress:
 	  ldi	    r16, 0
-	  out	    PORTD, r16
+	  out	    PORTD, r16		; clears PORTD so only allows one bit to be on when player inputs and checks for comparisons
 	  reti 
