@@ -51,18 +51,18 @@ main:
 	cbi     PORTB, PB3
 	
 				; setup different 4 pins for input to the machine, to match light
-	cbi	DDRD, DDD0	; Button 1
-	cbi	DDRD, DDD1	; Button 2
-	cbi	DDRD, DDD2	; Button 3
-	cbi	DDRD, DDD3	; Button 4
+	cbi	DDRD, DDD2	; Button 1
+	cbi	DDRD, DDD3	; Button 2
+	cbi	DDRD, DDD4	; Button 3
+	cbi	DDRD, DDD5	; Button 4
 	
-	cbi       PORTD, PD0          ; set high impedance
-	cbi       PORTD, PD1          ; set high impedance
 	cbi       PORTD, PD2          ; set high impedance
 	cbi       PORTD, PD3          ; set high impedance
+	cbi       PORTD, PD4          ; set high impedance
+	cbi       PORTD, PD5          ; set high impedance
         ldi       r20, (1<<PCIE2)     ; enable pin-change interrupts for Port D
         sts       PCICR, r20
-        ldi       r20, 0b00001111     ; enable pin-change for D0-3
+        ldi       r20, 0b00111100     ; enable pin-change for D0-3
         sts       PCMSK2, r20
         
         call	  tm1_init
@@ -335,30 +335,30 @@ four_button_press:
 	  ldi	    allowInput, 0	; after returning, makes sure player is not allowed to input until next input is required
                                   
           in        r16,PORTD           ; copy the entire D port into r16     
-          cpi       r16,0b0001          ; use CPI to check if Port D Pin 0 (button1) is set (pressed)
+          cpi       r16,0b000100               ; use CPI to check if Port D Pin 0 (button1) is set (pressed)
           breq      button_one_pressed  ; if pressed branch
-          cpi       r16,0b0010          ; use CPI to check if Port D Pin 1 (button2) is set (pressed) 
+          cpi       r16,0b001000               ; use CPI to check if Port D Pin 1 (button2) is set (pressed) 
           breq      button_two_pressed
-          cpi       r16,0b0100          ; use CPI to check if Port D Pin 2 (button3) is set (pressed)
+          cpi       r16,0b010000               ; use CPI to check if Port D Pin 2 (button3) is set (pressed)
           breq      button_three_pressed
-          cpi       r16,0b1000          ; use CPI to check if Port D Pin 3 (button4) is set (pressed)
+          cpi       r16,0b100000               ; use CPI to check if Port D Pin 3 (button4) is set (pressed)
           breq      button_four_pressed
           rjmp      four_button_press
 button_one_pressed:
           sbi       PORTB,PB0           ; turn LED 1 on
-          ldi       buttonInputValue, 0b0001	; set player input value to match LED 1
+          ldi       buttonInputValue, 0b000100	; set player input value to match LED 1
           rjmp      end_fbpress
 button_two_pressed:
           sbi       PORTB,PB1           ; turn LED 2 on
-          ldi       buttonInputValue, 0b0010	; set player input value to match LED 2
+          ldi       buttonInputValue, 0b001000	; set player input value to match LED 2
           rjmp      end_fbpress
 button_three_pressed:
           sbi       PORTB,PB2           ; turn LED 3 on
-          ldi       buttonInputValue, 0b0100	; set player input value to match LED 3
+          ldi       buttonInputValue, 0b010000	; set player input value to match LED 3
           rjmp      end_fbpress
 button_four_pressed:
           sbi       PORTB,PB3           ; turn LED 4 on
-          ldi       buttonInputValue, 0b1000	; set player input value to match LED 4
+          ldi       buttonInputValue, 0b100000	; set player input value to match LED 4
 end_fbpress:
 	  ldi	    r16, 0
 	  out	    PORTD, r16		; clears PORTD so only allows one bit to be on when player inputs and checks for comparisons
