@@ -196,6 +196,12 @@ main_gameplay_loop:
 display_pattern: 
 	  ld	    r16, z+		;do: fetch value from memory using first memory + (pattern length - 1)
 	  				;also increments to next place in pattern
+wait_for_display:
+
+          tst       ledCount
+          brne      wait_for_display
+show_light:
+
 	  cpi	    r16, 0b0001		;display value by turning on corresponding light
 	  breq      turn_PB0_on
 	  
