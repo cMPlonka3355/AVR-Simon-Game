@@ -62,7 +62,7 @@ main:
 	cbi       PORTD, PD5          ; set high impedance
         ldi       r20, (1<<PCIE2)     ; enable pin-change interrupts for Port D
         sts       PCICR, r20
-        ldi       r20, 0b00111100     ; enable pin-change for D0-3
+        ldi       r20, 0b001111     ; enable pin-change for D0-3
         sts       PCMSK2, r20
         
         call	  tm1_init
@@ -346,19 +346,19 @@ four_button_press:
           rjmp      four_button_press
 button_one_pressed:
           sbi       PORTB,PB0           ; turn LED 1 on
-          ldi       buttonInputValue, 0b000100	; set player input value to match LED 1
+          ldi       buttonInputValue, 0b0001	; set player input value to match LED 1
           rjmp      end_fbpress
 button_two_pressed:
           sbi       PORTB,PB1           ; turn LED 2 on
-          ldi       buttonInputValue, 0b001000	; set player input value to match LED 2
+          ldi       buttonInputValue, 0b0010	; set player input value to match LED 2
           rjmp      end_fbpress
 button_three_pressed:
           sbi       PORTB,PB2           ; turn LED 3 on
-          ldi       buttonInputValue, 0b010000	; set player input value to match LED 3
+          ldi       buttonInputValue, 0b0100	; set player input value to match LED 3
           rjmp      end_fbpress
 button_four_pressed:
           sbi       PORTB,PB3           ; turn LED 4 on
-          ldi       buttonInputValue, 0b100000	; set player input value to match LED 4
+          ldi       buttonInputValue, 0b1000	; set player input value to match LED 4
 end_fbpress:
 	  ldi	    r16, 0
 	  out	    PORTD, r16		; clears PORTD so only allows one bit to be on when player inputs and checks for comparisons
