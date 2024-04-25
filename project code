@@ -62,7 +62,7 @@ main:
 	cbi       PORTD, PD5          ; set high impedance
         ldi       r20, (1<<PCIE2)     ; enable pin-change interrupts for Port D
         sts       PCICR, r20
-        ldi       r20, 0b001111     ; enable pin-change for D0-3
+        ldi       r20, 0b00111100     ; enable pin change for D2-5
         sts       PCMSK2, r20
         
         call	  tm1_init
