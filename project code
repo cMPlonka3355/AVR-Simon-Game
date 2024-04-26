@@ -242,7 +242,7 @@ four_button_press:
 	  ldi	    ledCount, 1
 	  ldi	    allowInput, 0	          ; after returning, makes sure player is not allowed to input until next input is required
                                   
-          in        r16,PORTD                     ; copy the entire D port into r16     
+          in        r16,PIND                     ; copy the entire D port into r16     
           cpi       r16,0b000100                  ; use CPI to check if Port D Pin 0 (button1) is set (pressed)
           breq      button_one_pressed            ; if pressed branch
           cpi       r16,0b001000                  ; use CPI to check if Port D Pin 1 (button2) is set (pressed) 
