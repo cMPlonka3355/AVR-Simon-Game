@@ -10,7 +10,7 @@
 
 .equ patternAddress = 0x0100		; starting address for pattern
 .equ patternLength = 50			; default pattern length
- 
+.equ DELAY_S = 30                       ; sleep 1 second
 
 .def scoreKeep = r21			; keeps track of player's score
 .def patternLengthForRound = r22	; holds length of pattern to be output each round
@@ -60,37 +60,230 @@ main:
 	cbi       PORTD, PD3          ; set high impedance
 	cbi       PORTD, PD4          ; set high impedance
 	cbi       PORTD, PD5          ; set high impedance
-        ldi       r20, (1<<PCIE2)     ; enable pin-change interrupts for Port D
-        sts       PCICR, r20
-        ldi       r20, 0b00111100     ; enable pin change for D2-5
-        sts       PCMSK2, r20
+          ldi       r20, (1<<PCIE2)     ; enable pin-change interrupts for Port D
+          sts       PCICR, r20
+          ldi       r20, 0b00111100     ; enable pin change for D2-5
+          sts       PCMSK2, r20
         
-        call	  tm1_init
+          call	  tm1_init
+
 	
 	sei
 	
 ;setup connection with 4 digit display, to keep track of score
 	
-	ldi	r16, patternLength	;set variable with length value
+	ldi	r16, patternLength	          ;set variable with length value
 	mov	r3, r16
 	
 	ldi	scoreKeep, 0		;set up variable for keeping track of score
 
-	ldi	patternLengthForRound, 1	; sets length of pattern to be displayed for first round
+	ldi	patternLengthForRound, 5	; sets length of pattern to be displayed for first round
 	
 	ldi	allowInput, 0		; makes the player unable to input values
+          
+          call      generate_pattern
+; ------------------------------------------------------------
+	
+main_gameplay_loop:
+                                          
+	;display value of score
+	
+	ldi	 r23, 0		          ;setup register for looping display_pattern 
+	ldi	zh, HIGH(patternAddress)	;copy address to z pointer, in order to increment in loop
+	ldi	zl, LOW(patternAddress)
 
-generate_pattern:
+display_pattern: 
+	  ld	    r16, z+		;do: fetch value from memory using first memory + (pattern length - 1) 
+	  				;also increments to next place in pattern
+                                                  ; loading z into r16
+wait_for_display:
+                                                   ; led count starts at 0 on first itteration
+          tst       ledCount                       ; while (any light on)
+          brne      wait_for_display               ;continue looping to check
+;          rjmp      delay_to_avoid_double          ; delay to avoid displaying repeated light without space
+show_light:                                        ;display value by turning on corresponding light
+                                                   ; check if the value we loaded from memory into r16 == address corresponding to LED 1,2,3 or 4
+             
+	  cpi	    r16, 0b0001		
+	  breq      turn_PB0_on
+	  
+	  cpi	    r16, 0b0010		
+	  breq      turn_PB1_on
+	  
+	  cpi	    r16, 0b0100		
+	  breq      turn_PB2_on
+	  
+	  cpi	    r16, 0b1000		
+	  breq      turn_PB3_on
+
+turn_PB0_on:
+	  sbi	    PORTB, PB0
+	  ldi	    ledCount, 1
+	  rjmp      continue_display_pattern
+
+turn_PB1_on:
+	  sbi	    PORTB, PB1
+	  ldi	    ledCount, 1
+	  rjmp      continue_display_pattern	  
+  
+turn_PB2_on:
+	  sbi	    PORTB, PB2
+	  ldi	    ledCount, 1
+	  rjmp      continue_display_pattern	  
+	  
+turn_PB3_on:
+	  sbi	    PORTB, PB3
+	  ldi	    ledCount, 1
+					
+continue_display_pattern:	  	  
+	  	
+	  in        r16,PORTB		; get value of PORTB, checking if any lights on
+	  tst	  r16			; while (any light on)
+	  brne	  continue_display_pattern	; continue looping to check
+	  				; else
+	  inc	  r23			; increment variable to track loop
+	  cpse	  r23, patternLengthForRound		;while ( loop tracker <  pattern length)
+	  rjmp	  display_pattern			;   jump to display_pattern
+	
+	  ldi	  r23, 0		          ;set loop variable back to zero
+
+player_repeat_pattern:
+	  
+	  ld	  r16, z+		          ;do: fetch value of pattern to match from memory
+	  				;also increments to next place in pattern
+	  				
+	  ldi	  allowInput, 1		;set so player is allowed to input values
+wait_for_input:
+	  				
+	  cpi	  allowInput, 0		;while (allowInput)
+	  brne    wait_for_input	;    wait for player input
+	  				
+compare_values:
+	  cp	  buttonInputValue, r16	;compare player input to value from memory
+	  brne    lose_game		;if not same value, jump to lose state
+					;else continue loop
+	  		
+	  inc	  r23			;increment variable tracker
+	  cpse	  r23, patternLengthForRound		;while (loop tracker < pattern length), jump to player_repeat_pattern
+	  rjmp	  player_repeat_pattern
+	  
+	  inc	  scoreKeep 		;increment score
+	  
+
+end_main:
+	inc	patternLengthForRound	; increment pattern length to be displayed next round
+	cpi	patternLengthForRound, patternLength + 1	; if (pattern length for round greater than total pattern)
+	breq	win_game					;     player wins game
+	rjmp	main_gameplay_loop				; else repeat gameplay loop
+
+win_game:
+	rjmp	win_game
+
+lose_game:
+	rjmp	lose_game
+
+          
+; ------------------------------------------------------------
+tm1_init:
+; intitialize timer1 with interrupts
+; ------------------------------------------------------------
+          ; set timer counter
+          ldi       r20, HIGH(DELAY_INTERRUPT)
+          sts       TCNT1H, r20
+          ldi       r20, LOW(DELAY_INTERRUPT)
+          sts       TCNT1L, r20
+         
+          clr       r20                 ; normal mode
+          sts       TCCR1A, r20
+
+          ldi       r20, (1<<CS12)      ; normal mode, clk/256
+          sts       TCCR1B, r20         ; clock is started
+
+          ldi       r20, (1<<TOIE1)     ; enable timer overflow interrupt
+          sts       TIMSK1, r20
+
+          ret                           ; delay_tm1
+
+; ------------------------------------------------------------
+tm1_isr:
+; handle timer1 interrupts (overflow)
+; ------------------------------------------------------------
+	  tst	    ledCount
+	  brne	    tm1_isr_decrement_led
+	  
+	  cbi     PORTB, PB0		;turn lights off
+	  cbi     PORTB, PB1
+	  cbi     PORTB, PB2
+	  cbi     PORTB, PB3	
+	  
+	  rjmp	  tm1_isr_ret
+	  
+tm1_isr_decrement_led:
+	  dec	    ledCount
+
+tm1_isr_ret:
+          ldi       r20, HIGH(DELAY_INTERRUPT)    ; reset timer counter
+          sts       TCNT1H, r20
+          ldi       r20, LOW(DELAY_INTERRUPT)
+          sts       TCNT1L, r20
+
+          reti
+
+; ------------------------------------------------------------
+four_button_press:                      
+;the purpose of four_button_press is to take button input, turn led on, turn led off 
+
+	  tst       ledCount		; check to see if light is currently on
+	  brne	    end_fbpress
+	  
+	  tst	    allowInput		; check to see if player is allowed to input anything
+	  breq	    end_fbpress
+	  
+	  ldi	    ledCount, 1
+	  ldi	    allowInput, 0	          ; after returning, makes sure player is not allowed to input until next input is required
+                                  
+          in        r16,PORTD                     ; copy the entire D port into r16     
+          cpi       r16,0b000100                  ; use CPI to check if Port D Pin 0 (button1) is set (pressed)
+          breq      button_one_pressed            ; if pressed branch
+          cpi       r16,0b001000                  ; use CPI to check if Port D Pin 1 (button2) is set (pressed) 
+          breq      button_two_pressed 
+          cpi       r16,0b010000                  ; use CPI to check if Port D Pin 2 (button3) is set (pressed)
+          breq      button_three_pressed
+          cpi       r16,0b100000                  ; use CPI to check if Port D Pin 3 (button4) is set (pressed)
+          breq      button_four_pressed
+          rjmp      end_fbpress                   ; to leave interrupt if all false
+button_one_pressed:
+          sbi       PORTB,PB0                     ; turn LED 1 on
+          ldi       buttonInputValue, 0b0001	; set player input value to match LED 1
+          rjmp      end_fbpress
+button_two_pressed:
+          sbi       PORTB,PB1                     ; turn LED 2 on
+          ldi       buttonInputValue, 0b0010	; set player input value to match LED 2
+          rjmp      end_fbpress
+button_three_pressed:
+          sbi       PORTB,PB2                     ; turn LED 3 on
+          ldi       buttonInputValue, 0b0100	; set player input value to match LED 3
+          rjmp      end_fbpress
+button_four_pressed:
+          sbi       PORTB,PB3                     ; turn LED 4 on
+          ldi       buttonInputValue, 0b1000	; set player input value to match LED 4
+end_fbpress:
+	  ldi	    r16, 0
+	  out	    PORTD, r16		; clears PORTD so only allows one bit to be on when player inputs and checks for comparisons
+	  reti
+; ------------------------------------------------------------
+ generate_pattern:
 ;generates pattern to be utilized in gameplay loop
-	ldi	r16, 0b0010
+; ------------------------------------------------------------
+	ldi	r16, 0b0010         ;LED 2 (first few commented for debugging)
 	sts	0x0100, r16
-	ldi	r16, 0b0001
+	ldi	r16, 0b0001         ;LED 1
 	sts	0x0101, r16
-	ldi	r16, 0b1000
+	ldi	r16, 0b1000         ;LED 4
 	sts	0x0102, r16
-	ldi	r16, 0b0100
+	ldi	r16, 0b0100         ;LED 4
 	sts	0x0103, r16
-	ldi	r16, 0b0100
+	ldi	r16, 0b0100         ;LED 3
 	sts	0x0104, r16
 	ldi	r16, 0b0001
 	sts	0x0105, r16
@@ -182,190 +375,29 @@ generate_pattern:
 	sts	0x0130, r16
 	ldi	r16, 0b0010
 	sts	0x0131, r16
-
 ; ------------------------------------------------------------
-	
-main_gameplay_loop:
-                                          
-	;display value of score
-	
-	ldi	 r23, 0				;setup register for looping display_pattern 
-	ldi	zh, HIGH(patternAddress)	;copy address to z pointer, in order to increment in loop
-	ldi	zl, LOW(patternAddress)
-
-display_pattern: 
-	  ld	    r16, z+		;do: fetch value from memory using first memory + (pattern length - 1)
-	  				;also increments to next place in pattern
-wait_for_display:
-
-          tst       ledCount
-          brne      wait_for_display
-show_light:
-
-	  cpi	    r16, 0b0001		;display value by turning on corresponding light
-	  breq      turn_PB0_on
-	  
-	  cpi	    r16, 0b0010		
-	  breq      turn_PB1_on
-	  
-	  cpi	    r16, 0b0100		
-	  breq      turn_PB2_on
-	  
-	  cpi	    r16, 0b1000		
-	  breq      turn_PB3_on
-
-turn_PB0_on:
-	  sbi	    PORTB, PB0
-	  ldi	    ledCount, 1
-	  rjmp      continue_display_pattern
-
-turn_PB1_on:
-	  sbi	    PORTB, PB1
-	  ldi	    ledCount, 1
-	  rjmp      continue_display_pattern	  
-  
-turn_PB2_on:
-	  sbi	    PORTB, PB2
-	  ldi	    ledCount, 1
-	  rjmp      continue_display_pattern	  
-	  
-turn_PB3_on:
-	  sbi	    PORTB, PB3
-	  ldi	    ledCount, 1
-					
-continue_display_pattern:	  	  
-	  	
-	  in      r16,PORTB		; get value of PORTB, checking if any lights on
-	  tst	  r16			; while (any light on)
-	  brne	  continue_display_pattern	; continue looping to check
-	  				; else
-	  inc	  r23			; increment variable to track loop
-	  cpse	  r23, patternLengthForRound		;while ( loop tracker <  pattern length)
-	  rjmp	  display_pattern			;   jump to display_pattern
-	
-	  ldi	  r23, 0		;set loop variable back to zero
-
-player_repeat_pattern:
-	  
-	  ld	  r16, z+		;do: fetch value of pattern to match from memory
-	  				;also increments to next place in pattern
-	  				
-	  ldi	  allowInput, 1		;set so player is allowed to input values
-wait_for_input:
-	  				
-	  cpi	  allowInput, 0		;while (allowInput)
-	  brne    wait_for_input	;    wait for player input
-	  				
-compare_values:
-	  cp	  buttonInputValue, r16	;compare player input to value from memory
-	  brne    lose_game		;if not same value, jump to lose state
-					;else continue loop
-	  		
-	  inc	  r23			;increment variable tracker
-	  cpse	  r23, patternLengthForRound		;while (loop tracker < pattern length), jump to player_repeat_pattern
-	  rjmp	  player_repeat_pattern
-	  
-	  inc	  scoreKeep 		;increment score
-	  
-
-end_main:
-	inc	patternLengthForRound	; increment pattern length to be displayed next round
-	cpi	patternLengthForRound, patternLength + 1	; if (pattern length for round greater than total pattern)
-	breq	win_game					;     player wins game
-	rjmp	main_gameplay_loop				; else repeat gameplay loop
-
-win_game:
-	rjmp	win_game
-
-lose_game:
-	rjmp	lose_game
-
-          
+delay_to_avoid_double:
+; creates a timed delay using multiple nested loops
 ; ------------------------------------------------------------
-tm1_init:
-; intitialize timer1 with interrupts
-; ------------------------------------------------------------
-          ; set timer counter
-          ldi       r20, HIGH(DELAY_INTERRUPT)
-          sts       TCNT1H, r20
-          ldi       r20, LOW(DELAY_INTERRUPT)
-          sts       TCNT1L, r20
-         
-          clr       r20                 ; normal mode
-          sts       TCCR1A, r20
 
-          ldi       r20, (1<<CS12)      ; normal mode, clk/256
-          sts       TCCR1B, r20         ; clock is started
+; add cli and sei so can't interrupt
+          ldi       r18,DELAY_S
+delay_ms_1:
 
-          ldi       r20, (1<<TOIE1)     ; enable timer overflow interrupt
-          sts       TIMSK1, r20
+          ldi       r17,200
+delay_ms_2:
 
-          ret                           ; delay_tm1
+          ldi       r19,250
+delay_ms_3:
+          nop
+          nop
+          dec       r19
+          brne      delay_ms_3          ; 250 * 5 = 1250
 
-; ------------------------------------------------------------
-tm1_isr:
-; handle timer1 interrupts (overflow)
-; ------------------------------------------------------------
-	  tst	    ledCount
-	  brne	    tm1_isr_decrement_led
-	  
-	  cbi     PORTB, PB0		;turn lights off
-	  cbi     PORTB, PB1
-	  cbi     PORTB, PB2
-	  cbi     PORTB, PB3	
-	  
-	  rjmp	  tm1_isr_ret
-	  
-tm1_isr_decrement_led:
-	  dec	    ledCount
+          dec       r17
+          brne      delay_ms_2          ; 200 * 1250 = 250K
 
-tm1_isr_ret:
-          ldi       r20, HIGH(DELAY_INTERRUPT); reset timer counter
-          sts       TCNT1H, r20
-          ldi       r20, LOW(DELAY_INTERRUPT)
-          sts       TCNT1L, r20
-
-          reti
-
-; ------------------------------------------------------------
-four_button_press:                      
-;the purpose of four_button_press is to take button input, turn led on, turn led off 
-
-	  tst       ledCount		; check to see if light is currently on
-	  brne	    end_fbpress
-	  
-	  tst	    allowInput		; check to see if player is allowed to input anything
-	  breq	    end_fbpress
-	  
-	  ldi	    ledCount, 1
-	  ldi	    allowInput, 0	; after returning, makes sure player is not allowed to input until next input is required
-                                  
-          in        r16,PORTD           ; copy the entire D port into r16     
-          cpi       r16,0b000100               ; use CPI to check if Port D Pin 0 (button1) is set (pressed)
-          breq      button_one_pressed  ; if pressed branch
-          cpi       r16,0b001000               ; use CPI to check if Port D Pin 1 (button2) is set (pressed) 
-          breq      button_two_pressed
-          cpi       r16,0b010000               ; use CPI to check if Port D Pin 2 (button3) is set (pressed)
-          breq      button_three_pressed
-          cpi       r16,0b100000               ; use CPI to check if Port D Pin 3 (button4) is set (pressed)
-          breq      button_four_pressed
-          rjmp      four_button_press
-button_one_pressed:
-          sbi       PORTB,PB0           ; turn LED 1 on
-          ldi       buttonInputValue, 0b0001	; set player input value to match LED 1
-          rjmp      end_fbpress
-button_two_pressed:
-          sbi       PORTB,PB1           ; turn LED 2 on
-          ldi       buttonInputValue, 0b0010	; set player input value to match LED 2
-          rjmp      end_fbpress
-button_three_pressed:
-          sbi       PORTB,PB2           ; turn LED 3 on
-          ldi       buttonInputValue, 0b0100	; set player input value to match LED 3
-          rjmp      end_fbpress
-button_four_pressed:
-          sbi       PORTB,PB3           ; turn LED 4 on
-          ldi       buttonInputValue, 0b1000	; set player input value to match LED 4
-end_fbpress:
-	  ldi	    r16, 0
-	  out	    PORTD, r16		; clears PORTD so only allows one bit to be on when player inputs and checks for comparisons
-	  reti 
+          dec       r18
+          brne      delay_ms_1          ; 16 * 250K = 4M (1/4s ex)
+dealy_ms_end:
+          rjmp show_light
