@@ -78,7 +78,7 @@ main:
 	
 	  ldi	    scoreKeep, 0		; set up variable for keeping track of score
 
-	  ldi	    patternLengthForRound, 5	; sets length of pattern to be displayed for first round
+	  ldi	    patternLengthForRound, 1	; sets length of pattern to be displayed for first round
 	
 	  ldi	    allowInput, 0		; disable player input
           
@@ -148,7 +148,9 @@ continue_display_pattern:
 
 	  ; continue displaying pattern
 	  rjmp	    display_pattern		;   jump to display_pattern
-	
+
+	  ldi	    zh, HIGH(patternAddress)	; reset z pointer back to first address in pattern list
+	  ldi	    zl, LOW(patternAddress)
 	  ldi	    r23, 0		       	; set loop variable back to zero
 
 player_repeat_pattern:
@@ -245,14 +247,14 @@ four_button_press:
 	  ldi	    ledCount, 1			; set LED count for button press
 	  ldi	    allowInput, 0		; after returning, makes sure player is not allowed to input until next input is required
                                   
-	  in	    r16,PIND			; copy the entire D port into r16     
-	  cpi	    r16,0b000100		; use CPI to check if Port D Pin 0 (button1) is set (pressed)
+	  in	    r17,PIND			; copy the entire D port into r16     
+	  cpi	    r17,0b000100		; use CPI to check if Port D Pin 0 (button1) is set (pressed)
 	  breq	    button_one_pressed		; branch if button 1 is pressed
-	  cpi	    r16,0b001000		; use CPI to check if Port D Pin 1 (button2) is set (pressed) 
+	  cpi	    r17,0b001000		; use CPI to check if Port D Pin 1 (button2) is set (pressed) 
 	  breq	    button_two_pressed 
-	  cpi	    r16,0b010000		; use CPI to check if Port D Pin 2 (button3) is set (pressed)
+	  cpi	    r17,0b010000		; use CPI to check if Port D Pin 2 (button3) is set (pressed)
 	  breq	    button_three_pressed
-	  cpi	    r16,0b100000		; use CPI to check if Port D Pin 3 (button4) is set (pressed)
+	  cpi	    r17,0b100000		; use CPI to check if Port D Pin 3 (button4) is set (pressed)
 	  breq	    button_four_pressed
 	  rjmp	    end_fbpress			; exit interrupt is no button is pressed
 
@@ -276,10 +278,6 @@ button_four_pressed:
           ldi       buttonInputValue, 0b1000	; set player input value to match LED 4
 
 end_fbpress:
-	  ldi	    r16, 0			
-
-	  ; clear PORTD to allow only one button to be pressed
-	  out	    PORTD, r16			; clears PORTD so only allows one bit to be on when player inputs and checks for comparisons
 	  reti
 
 ; ------------------------------------------------------------
